@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <!-- ================================================================
+         CAPITAL VISION - Sitio Web Oficial
+         Experiencia interactiva premium - Desarrollo web de alta gama
+         ================================================================ -->
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+    <meta name="description" content="Capital Vision - Desarrollo web premium, diseño futurista e implementación enfocada en conversión." />
+    <meta name="theme-color" content="#000000" />
+    <title>Capital Vision — Desarrollo Web Premium</title>
+
+    <!-- Preconexiones a Google Fonts para tipografía rápida -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Fuentes futuristas: Space Grotesk (cuerpo), Syncopate (display de marca) -->
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Syncopate:wght@400;700&display=swap" rel="stylesheet" />
+
+    <!-- Tailwind CSS desde CDN para utilidades rápidas -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Configuración personalizada de Tailwind (colores y fuentes de marca) -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        // Negro puro y variantes oscuras del fondo
+                        ink: {
+                            900: '#000000',
+                            800: '#0b0b0b',
+                            700: '#141414',
+                            600: '#1c1c1c'
+                        },
+                        // Naranja eléctrico sofisticado de la marca
+                        brand: {
+                            DEFAULT: '#ff6600',
+                            soft: '#ff8533',
+                            deep: '#cc4f00',
+                            glow: '#ff7a1a'
+                        }
+                    },
+                    fontFamily: {
+                        // Display para títulos y branding
+                        display: ['Syncopate', 'sans-serif'],
+                        // Sans futurista para cuerpo
+                        sans: ['Space Grotesk', 'system-ui', 'sans-serif']
+                    }
+                }
+            }
+        };
+    </script>
+
+    <!-- Matter.js para físicas del Hero "Antigravity" -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.20.0/matter.min.js"></script>
+
+    <!-- Estilos personalizados de la marca -->
+    <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body class="bg-ink-900 text-white font-sans antialiased">
+
+    <!-- ============================================================
+         CURSOR PERSONALIZADO (Anillo + Punto)
+         Manipulado por js/app.js
+         ============================================================ -->
+    <div id="cursor-ring" class="cursor-ring"></div>
+    <div id="cursor-dot" class="cursor-dot"></div>
+
+    <!-- ============================================================
+         RUIDO/GRANO SUTIL DE FONDO (mejora premium)
+         ============================================================ -->
+    <div class="noise-overlay" aria-hidden="true"></div>
+
+    <!-- ============================================================
+         NAVBAR FIJO + TRANSLÚCIDO
+         ============================================================ -->
+    <header id="navbar" class="fixed top-0 left-0 right-0 z-50 transition-all duration-500">
+        <nav class="max-w-7xl mx-auto px-6 md:px-10 py-5 flex items-center justify-between backdrop-blur-xl bg-ink-900/40 border-b border-white/5">
+            <!-- Marca textual: Capital Vision -->
+            <a href="#inicio" class="brand-logo group flex items-center gap-2 cursor-none" data-cursor="link">
+                <span class="brand-dot"></span>
+                <span class="font-display tracking-[0.18em] text-sm md:text-base font-bold text-white group-hover:text-brand transition-colors duration-300">
+                    CAPITAL<span class="text-brand">·</span>VISION
+                </span>
+            </a>
+
+            <!-- Enlaces de navegación (desktop) -->
+            <ul class="hidden md:flex items-center gap-10 text-sm font-medium tracking-wide">
+                <li><a href="#inicio" class="nav-link" data-cursor="link">Inicio</a></li>
+                <li><a href="#que-hacemos" class="nav-link" data-cursor="link">Qué Hacemos</a></li>
+                <li><a href="#planes" class="nav-link" data-cursor="link">Planes</a></li>
+                <li><a href="#contacto" class="nav-link" data-cursor="link">Contacto</a></li>
+            </ul>
+
+            <!-- CTA y menú móvil -->
+            <div class="flex items-center gap-4">
+                <a href="#contacto" class="hidden md:inline-flex cta-mini" data-cursor="button">
+                    <span>Cotizar</span>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <path d="M5 12h14M13 5l7 7-7 7"/>
+                    </svg>
+                </a>
+                <!-- Botón hamburguesa móvil -->
+                <button id="menu-toggle" class="md:hidden flex flex-col gap-1.5 p-2" aria-label="Abrir menú">
+                    <span class="block w-6 h-0.5 bg-white transition-all"></span>
+                    <span class="block w-6 h-0.5 bg-white transition-all"></span>
+                </button>
+            </div>
+        </nav>
+
+        <!-- Menú móvil desplegable -->
+        <div id="mobile-menu" class="md:hidden hidden bg-ink-900/95 backdrop-blur-xl border-b border-white/5">
+            <ul class="px-6 py-6 flex flex-col gap-5 text-sm tracking-wider">
+                <li><a href="#inicio" class="mobile-link">Inicio</a></li>
+                <li><a href="#que-hacemos" class="mobile-link">Qué Hacemos</a></li>
+                <li><a href="#planes" class="mobile-link">Planes</a></li>
+                <li><a href="#contacto" class="mobile-link">Contacto</a></li>
+            </ul>
+        </div>
+    </header>
+
+    <!-- ============================================================
+         SECCIÓN HERO - "ANTIGRAVITY" INTERACTIVO
+         ============================================================ -->
+    <section id="inicio" class="relative min-h-screen w-full overflow-hidden flex items-center">
+
+        <!-- Lienzo de físicas: aquí se renderiza Matter.js -->
+        <canvas id="physics-canvas" class="absolute inset-0 w-full h-full"></canvas>
+
+        <!-- Gradiente radial naranja sutil de fondo -->
+        <div class="absolute inset-0 hero-glow pointer-events-none"></div>
+
+        <!-- Cuadrícula sutil futurista -->
+        <div class="absolute inset-0 grid-overlay pointer-events-none"></div>
+
+        <!-- Contenido del Hero (texto principal) -->
+        <div class="relative z-10 max-w-7xl mx-auto px-6 md:px-10 pt-32 pb-20 w-full pointer-events-none">
+            <div class="max-w-4xl">
+                <!-- Etiqueta superior -->
+                <div class="reveal flex items-center gap-3 mb-8 pointer-events-auto">
+                    <span class="live-dot"></span>
+                    <span class="text-[11px] tracking-[0.3em] text-white/60 uppercase">Estudio de Desarrollo Web · 2026</span>
+                </div>
+
+                <!-- Título principal con jerarquía -->
+                <h1 class="reveal font-display font-bold leading-[0.95] tracking-tight">
+                    <span class="block text-[2rem] sm:text-5xl md:text-7xl lg:text-8xl">CONSTRUIMOS</span>
+                    <span class="block text-[2rem] sm:text-5xl md:text-7xl lg:text-8xl text-brand glow-text">EXPERIENCIAS</span>
+                    <span class="block text-[2rem] sm:text-5xl md:text-7xl lg:text-8xl">QUE VENDEN.</span>
+                </h1>
+
+                <!-- Subtítulo / Descripción -->
+                <p class="reveal mt-10 text-lg md:text-xl text-white/70 max-w-2xl leading-relaxed font-light">
+                    Diseñamos sitios web premium con interactividad de última generación, optimizados para
+                    conversión y construidos con código limpio. Visión, código y resultados — bajo un mismo techo.
+                </p>
+
+                <!-- Botones CTA -->
+                <div class="reveal mt-12 flex flex-wrap gap-4 pointer-events-auto">
+                    <a href="#planes" class="btn-primary" data-cursor="button">
+                        <span class="relative z-10">Ver Planes</span>
+                        <svg class="relative z-10" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M5 12h14M13 5l7 7-7 7"/>
+                        </svg>
+                    </a>
+                    <a href="#que-hacemos" class="btn-secondary" data-cursor="button">
+                        Descubrir más
+                    </a>
+                </div>
+
+                <!-- Indicador de instrucción "arrastra y lanza" -->
+                <div class="reveal mt-16 flex items-center gap-3 text-xs tracking-[0.25em] uppercase text-white/40 pointer-events-auto">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M12 2v6m0 0l3-3m-3 3l-3-3M5 12H2m20 0h-3M12 22v-3m-7-7a7 7 0 1014 0 7 7 0 00-14 0z"/>
+                    </svg>
+                    <span>Arrastra · Lanza · Interactúa</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Indicador de scroll abajo -->
+        <div class="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-2 text-white/40 pointer-events-none">
+            <span class="text-[10px] tracking-[0.3em] uppercase">Scroll</span>
+            <div class="scroll-line"></div>
+        </div>
+
+        <!-- Marcas de esquinas decorativas estilo HUD -->
+        <div class="hud-corner hud-tl"></div>
+        <div class="hud-corner hud-tr"></div>
+        <div class="hud-corner hud-bl"></div>
+        <div class="hud-corner hud-br"></div>
+
+    </section>
+
+    <!-- ============================================================
+         SECCIÓN QUÉ HACEMOS - SERVICIOS
+         ============================================================ -->
+    <section id="que-hacemos" class="relative py-32 md:py-40 px-6 md:px-10 bg-ink-900 overflow-hidden">
+
+        <!-- Halo de fondo -->
+        <div class="absolute top-1/4 -left-40 w-[600px] h-[600px] bg-brand/10 rounded-full blur-[180px] pointer-events-none"></div>
+
+        <div class="relative max-w-7xl mx-auto">
+
+            <!-- Encabezado de sección -->
+            <div class="max-w-3xl mb-20">
+                <div class="reveal flex items-center gap-3 mb-6">
+                    <span class="h-px w-12 bg-brand"></span>
+                    <span class="text-[11px] tracking-[0.3em] text-brand uppercase">01 — Servicios</span>
+                </div>
+                <h2 class="reveal font-display font-bold text-4xl md:text-6xl leading-tight mb-6">
+                    Qué <span class="text-brand">Hacemos</span>
+                </h2>
+                <p class="reveal text-lg text-white/60 leading-relaxed font-light">
+                    Cada proyecto es una pieza de ingeniería visual. Combinamos estrategia, diseño y código
+                    para crear sitios que no sólo se ven extraordinarios — generan resultados medibles.
+                </p>
+            </div>
+
+            <!-- Grid de servicios -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+                <!-- Servicio 1 — Hexágono sólido (forma del hero) -->
+                <article class="service-card reveal" data-cursor="card">
+                    <div class="shape-icon shape-hex-fill">
+                        <svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
+                            <polygon points="30,4 54,17 54,43 30,56 6,43 6,17" />
+                        </svg>
+                    </div>
+                    <h3 class="service-title">Desarrollo Web Premium</h3>
+                    <p class="service-text">
+                        Sitios construidos con tecnología moderna, rendimiento de nivel productivo y
+                        animaciones que potencian la marca sin sacrificar velocidad.
+                    </p>
+                    <span class="service-num">/ 01</span>
+                </article>
+
+                <!-- Servicio 2 — Círculo anillo con punto central (forma del hero) -->
+                <article class="service-card reveal" data-cursor="card">
+                    <div class="shape-icon shape-ring">
+                        <svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="30" cy="30" r="22" fill="none" stroke-width="2"/>
+                            <circle cx="30" cy="30" r="4"/>
+                        </svg>
+                    </div>
+                    <h3 class="service-title">Diseño Enfocado en Conversión</h3>
+                    <p class="service-text">
+                        Cada sección, color y micro-interacción está pensada para guiar al visitante hacia
+                        la acción. Diseño con propósito comercial.
+                    </p>
+                    <span class="service-num">/ 02</span>
+                </article>
+
+                <!-- Servicio 3 — Cuadrado oscuro con etiqueta (forma del hero) -->
+                <article class="service-card reveal" data-cursor="card">
+                    <div class="shape-icon shape-square-tag">
+                        <svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="6" y="6" width="48" height="48" rx="8"/>
+                            <text x="30" y="35" text-anchor="middle" class="shape-text">&lt;/&gt;</text>
+                        </svg>
+                    </div>
+                    <h3 class="service-title">Implementación Llave en Mano</h3>
+                    <p class="service-text">
+                        Dominio, correo profesional, despliegue, certificados y mantenimiento. Tú te enfocas
+                        en tu negocio — nosotros en lo técnico.
+                    </p>
+                    <span class="service-num">/ 03</span>
+                </article>
+
+                <!-- Servicio 4 — Triángulo outline (forma del hero) -->
+                <article class="service-card reveal" data-cursor="card">
+                    <div class="shape-icon shape-tri">
+                        <svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
+                            <polygon points="30,6 56,52 4,52" fill="none" stroke-width="2"/>
+                        </svg>
+                    </div>
+                    <h3 class="service-title">Animaciones e Interactividad</h3>
+                    <p class="service-text">
+                        Físicas, transiciones suaves, scroll-tellings y micro-animaciones que convierten
+                        un sitio común en una experiencia memorable.
+                    </p>
+                    <span class="service-num">/ 04</span>
+                </article>
+
+                <!-- Servicio 5 — Píldora con etiqueta (forma del hero) -->
+                <article class="service-card reveal" data-cursor="card">
+                    <div class="shape-icon shape-pill">
+                        <svg viewBox="0 0 80 36" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="2" y="2" width="76" height="32" rx="16"/>
+                            <text x="40" y="23" text-anchor="middle" class="shape-text-pill">PAY</text>
+                        </svg>
+                    </div>
+                    <h3 class="service-title">Pagos &amp; Reservas</h3>
+                    <p class="service-text">
+                        Integración de pasarelas de pago seguras y sistemas de reservación adaptados a
+                        tu modelo de negocio — todo automatizado.
+                    </p>
+                    <span class="service-num">/ 05</span>
+                </article>
+
+                <!-- Servicio 6 — Círculo sólido con brillo (forma del hero) -->
+                <article class="service-card reveal" data-cursor="card">
+                    <div class="shape-icon shape-circle-fill">
+                        <svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
+                            <defs>
+                                <radialGradient id="grad-circle" cx="35%" cy="35%" r="65%">
+                                    <stop offset="0%" stop-color="#ff8533"/>
+                                    <stop offset="100%" stop-color="#cc4f00"/>
+                                </radialGradient>
+                            </defs>
+                            <circle cx="30" cy="30" r="24" fill="url(#grad-circle)"/>
+                        </svg>
+                    </div>
+                    <h3 class="service-title">Mantenimiento Continuo</h3>
+                    <p class="service-text">
+                        Tu sitio se mantiene rápido, seguro y actualizado. Monitoreo activo y soporte
+                        técnico cuando lo necesites.
+                    </p>
+                    <span class="service-num">/ 06</span>
+                </article>
+
+            </div>
+
+            <!-- Línea de stats inferior -->
+            <div class="reveal mt-24 grid grid-cols-2 md:grid-cols-4 gap-8 pt-12 border-t border-white/10">
+                <div class="stat-block">
+                    <div class="stat-num">100<span class="text-brand">%</span></div>
+                    <div class="stat-label">Personalizado</div>
+                </div>
+                <div class="stat-block">
+                    <div class="stat-num">24/<span class="text-brand">7</span></div>
+                    <div class="stat-label">Soporte</div>
+                </div>
+                <div class="stat-block">
+                    <div class="stat-num">∞<span class="text-brand">.</span></div>
+                    <div class="stat-label">Iteraciones</div>
+                </div>
+                <div class="stat-block">
+                    <div class="stat-num">0<span class="text-brand">ms</span></div>
+                    <div class="stat-label">Fricción</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================================================
+         SECCIÓN PLANES - TARIFAS
+         ============================================================ -->
+    <section id="planes" class="relative py-32 md:py-40 px-6 md:px-10 bg-ink-800 overflow-hidden">
+
+        <!-- Halo de fondo decorativo -->
+        <div class="absolute -top-40 right-0 w-[700px] h-[700px] bg-brand/10 rounded-full blur-[200px] pointer-events-none"></div>
+
+        <div class="relative max-w-7xl mx-auto">
+
+            <!-- Encabezado -->
+            <div class="max-w-3xl mb-20 mx-auto text-center">
+                <div class="reveal flex items-center justify-center gap-3 mb-6">
+                    <span class="h-px w-12 bg-brand"></span>
+                    <span class="text-[11px] tracking-[0.3em] text-brand uppercase">02 — Planes</span>
+                    <span class="h-px w-12 bg-brand"></span>
+                </div>
+                <h2 class="reveal font-display font-bold text-4xl md:text-6xl leading-tight mb-6">
+                    Elige tu <span class="text-brand">Visión</span>
+                </h2>
+                <p class="reveal text-lg text-white/60 leading-relaxed font-light">
+                    Dos planes diseñados para escalar contigo. Cotización personalizada en menos de 24 horas.
+                </p>
+            </div>
+
+            <!-- Tarjetas de precios -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-5xl mx-auto">
+
+                <!-- Plan Básico -->
+                <article class="plan-card reveal" data-cursor="card">
+                    <div class="plan-header">
+                        <span class="plan-badge">Esencial</span>
+                        <h3 class="plan-title">Plan <span class="text-brand">Básico</span></h3>
+                        <p class="plan-tagline">Para presencia digital sólida y profesional.</p>
+                    </div>
+
+                    <div class="plan-price-area">
+                        <div class="plan-price">
+                            <span class="plan-currency">Q</span>
+                            <span class="plan-amount">Custom</span>
+                        </div>
+                        <span class="plan-note">Cotización personalizada</span>
+                    </div>
+
+                    <ul class="plan-features">
+                        <li><span class="feature-check">✓</span> Desarrollo completo de página web</li>
+                        <li><span class="feature-check">✓</span> Dominio incluido + correo profesional</li>
+                        <li><span class="feature-check">✓</span> Mantenimiento mensual</li>
+                        <li><span class="feature-check">✓</span> Animaciones y estilo básico</li>
+                        <li><span class="feature-check">✓</span> Diseño responsivo (móvil/desktop)</li>
+                        <li><span class="feature-check">✓</span> Optimización SEO básica</li>
+                    </ul>
+
+                    <button class="plan-btn" data-plan="Básico" data-cursor="button">
+                        <span>Cotizar Plan Básico</span>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M5 12h14M13 5l7 7-7 7"/>
+                        </svg>
+                    </button>
+                </article>
+
+                <!-- Plan Empresarial (destacado) -->
+                <article class="plan-card plan-card-featured reveal" data-cursor="card">
+                    <div class="plan-glow"></div>
+                    <span class="plan-popular">Más Completo</span>
+
+                    <div class="plan-header">
+                        <span class="plan-badge plan-badge-featured">Premium</span>
+                        <h3 class="plan-title">Plan <span class="text-brand">Empresarial</span></h3>
+                        <p class="plan-tagline">Para negocios que exigen lo máximo.</p>
+                    </div>
+
+                    <div class="plan-price-area">
+                        <div class="plan-price">
+                            <span class="plan-currency">Q</span>
+                            <span class="plan-amount">Custom</span>
+                        </div>
+                        <span class="plan-note">Cotización personalizada</span>
+                    </div>
+
+                    <ul class="plan-features">
+                        <li><span class="feature-check">✓</span> Todo lo del Plan Básico</li>
+                        <li><span class="feature-check">✓</span> Enfoque experto en conversión</li>
+                        <li><span class="feature-check">✓</span> Mecanismos de pago integrados</li>
+                        <li><span class="feature-check">✓</span> Sistema de reservas automatizado</li>
+                        <li><span class="feature-check">✓</span> Animaciones avanzadas e interactividad</li>
+                        <li><span class="feature-check">✓</span> Soporte prioritario 24/7</li>
+                        <li><span class="feature-check">✓</span> Analítica e informes mensuales</li>
+                    </ul>
+
+                    <button class="plan-btn plan-btn-featured" data-plan="Empresarial" data-cursor="button">
+                        <span>Cotizar Plan Empresarial</span>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M5 12h14M13 5l7 7-7 7"/>
+                        </svg>
+                    </button>
+                </article>
+
+            </div>
+
+            <!-- Nota inferior -->
+            <p class="reveal mt-12 text-center text-sm text-white/40">
+                * Todos los planes se adaptan a las necesidades específicas de tu negocio.
+            </p>
+        </div>
+    </section>
+
+    <!-- ============================================================
+         MODAL DE COTIZACIÓN
+         ============================================================ -->
+    <div id="quote-modal" class="modal-overlay" aria-hidden="true">
+        <div class="modal-backdrop"></div>
+        <div class="modal-container">
+            <!-- Botón cerrar -->
+            <button id="modal-close" class="modal-close" aria-label="Cerrar" data-cursor="button">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M18 6L6 18M6 6l12 12"/>
+                </svg>
+            </button>
+
+            <!-- Contenido del modal -->
+            <div class="modal-content">
+                <div class="text-center mb-8">
+                    <span class="text-[11px] tracking-[0.3em] text-brand uppercase">Cotización</span>
+                    <h3 class="font-display font-bold text-3xl md:text-4xl mt-3 mb-3">
+                        Plan <span id="modal-plan-name" class="text-brand">Básico</span>
+                    </h3>
+                    <p class="text-white/60 text-sm">
+                        Déjanos tu número y te enviaremos tu cotización personalizada en menos de 24 horas.
+                    </p>
+                </div>
+
+                <!-- Formulario -->
+                <form id="quote-form" class="space-y-5">
+                    <div>
+                        <label for="phone" class="form-label">Número de Teléfono</label>
+                        <div class="form-input-wrap">
+                            <span class="form-prefix">+502</span>
+                            <input
+                                type="tel"
+                                id="phone"
+                                name="phone"
+                                placeholder="5854-9829"
+                                required
+                                pattern="[0-9\-\s]{8,12}"
+                                class="form-input"
+                                data-cursor="text"
+                            />
+                        </div>
+                        <small class="form-hint">Formato Guatemala — 8 dígitos (ej. 5854-9829).</small>
+                    </div>
+
+                    <button type="submit" class="form-submit" data-cursor="button">
+                        <span class="relative z-10">Enviar Solicitud</span>
+                        <svg class="relative z-10" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M5 12h14M13 5l7 7-7 7"/>
+                        </svg>
+                    </button>
+                </form>
+
+                <!-- Mensaje de éxito (oculto inicialmente) -->
+                <div id="quote-success" class="hidden text-center py-6">
+                    <div class="success-icon">
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M20 6L9 17l-5-5"/>
+                        </svg>
+                    </div>
+                    <h4 class="font-display text-xl mt-4 mb-2">¡Solicitud Recibida!</h4>
+                    <p class="text-white/60 text-sm">Te contactaremos muy pronto.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================
+         SECCIÓN CONTACTO + FOOTER
+         ============================================================ -->
+    <section id="contacto" class="relative py-32 md:py-40 px-6 md:px-10 bg-ink-900 overflow-hidden">
+
+        <!-- Halo de fondo -->
+        <div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-[900px] h-[500px] bg-brand/10 rounded-full blur-[200px] pointer-events-none"></div>
+
+        <div class="relative max-w-6xl mx-auto">
+
+            <!-- Encabezado -->
+            <div class="max-w-3xl mb-16">
+                <div class="reveal flex items-center gap-3 mb-6">
+                    <span class="h-px w-12 bg-brand"></span>
+                    <span class="text-[11px] tracking-[0.3em] text-brand uppercase">03 — Contacto</span>
+                </div>
+                <h2 class="reveal font-display font-bold text-4xl md:text-6xl leading-tight mb-6">
+                    Hablemos de tu <span class="text-brand">próximo proyecto</span>
+                </h2>
+                <p class="reveal text-lg text-white/60 leading-relaxed font-light">
+                    Cuéntanos tu idea y construyamos algo extraordinario juntos.
+                </p>
+            </div>
+
+            <!-- Grid de contacto -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
+
+                <!-- Formulario rápido -->
+                <div class="reveal">
+                    <form id="contact-form" class="contact-form">
+                        <div>
+                            <label for="contact-phone" class="form-label">Tu número</label>
+                            <div class="form-input-wrap">
+                                <span class="form-prefix">+502</span>
+                                <input
+                                    type="tel"
+                                    id="contact-phone"
+                                    name="phone"
+                                    placeholder="5854-9829"
+                                    required
+                                    class="form-input"
+                                    data-cursor="text"
+                                />
+                            </div>
+                            <small class="form-hint">Guatemala · 8 dígitos</small>
+                        </div>
+
+                        <button type="submit" class="form-submit" data-cursor="button">
+                            <span class="relative z-10">Solicitar Llamada</span>
+                            <svg class="relative z-10" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M5 12h14M13 5l7 7-7 7"/>
+                            </svg>
+                        </button>
+
+                        <div id="contact-success" class="hidden text-brand text-sm pt-3">
+                            ✓ Recibido. Te llamamos pronto.
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Contacto directo -->
+                <div class="reveal space-y-8">
+
+                    <!-- Llamada directa 1 -->
+                    <a href="tel:+50258549829" class="contact-block" data-cursor="link">
+                        <div class="contact-icon">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <span class="contact-label">Llámanos directamente</span>
+                            <span class="contact-value">+502 5854-9829</span>
+                        </div>
+                        <svg class="contact-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M7 17L17 7M7 7h10v10"/>
+                        </svg>
+                    </a>
+
+                    <!-- Llamada directa 2 -->
+                    <a href="tel:+50245870828" class="contact-block" data-cursor="link">
+                        <div class="contact-icon">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <span class="contact-label">Línea alterna</span>
+                            <span class="contact-value">+502 4587-0828</span>
+                        </div>
+                        <svg class="contact-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M7 17L17 7M7 7h10v10"/>
+                        </svg>
+                    </a>
+
+                    <!-- Email -->
+                    <a href="mailto:capitalvisionah@gmail.com" class="contact-block" data-cursor="link">
+                        <div class="contact-icon">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                                <path d="M22 6l-10 7L2 6"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <span class="contact-label">Escríbenos</span>
+                            <span class="contact-value">capitalvisionah@gmail.com</span>
+                        </div>
+                        <svg class="contact-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M7 17L17 7M7 7h10v10"/>
+                        </svg>
+                    </a>
+
+                    <!-- Redes sociales -->
+                    <div class="pt-4">
+                        <span class="text-[11px] tracking-[0.3em] text-white/40 uppercase mb-4 block">Síguenos</span>
+                        <div class="flex gap-3">
+                            <a href="#" class="social-btn" aria-label="Instagram" data-cursor="link">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                    <rect x="2" y="2" width="20" height="20" rx="5"/>
+                                    <path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37zM17.5 6.5h.01"/>
+                                </svg>
+                            </a>
+                            <a href="#" class="social-btn" aria-label="LinkedIn" data-cursor="link">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                    <path d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-4 0v7h-4v-7a6 6 0 016-6zM2 9h4v12H2zM4 6a2 2 0 100-4 2 2 0 000 4z"/>
+                                </svg>
+                            </a>
+                            <a href="#" class="social-btn" aria-label="X (Twitter)" data-cursor="link">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                                </svg>
+                            </a>
+                            <a href="#" class="social-btn" aria-label="WhatsApp" data-cursor="link">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M.057 24l1.687-6.163a11.867 11.867 0 01-1.587-5.946C.16 5.335 5.495 0 12.05 0a11.817 11.817 0 018.413 3.488 11.824 11.824 0 013.48 8.414c-.003 6.557-5.338 11.892-11.893 11.892a11.9 11.9 0 01-5.688-1.448L.057 24zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884a9.86 9.86 0 001.51 5.26l-.999 3.648 3.978-1.607zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.711.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
+                                </svg>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Pie de página -->
+            <footer class="reveal mt-24 pt-10 border-t border-white/10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                <div class="flex items-center gap-2">
+                    <span class="brand-dot"></span>
+                    <span class="font-display tracking-[0.18em] text-sm font-bold">
+                        CAPITAL<span class="text-brand">·</span>VISION
+                    </span>
+                </div>
+                <div class="flex flex-col md:flex-row gap-3 md:gap-8 text-xs text-white/40 tracking-wider">
+                    <span>© 2026 Capital Vision · Todos los derechos reservados</span>
+                    <a href="#" class="hover:text-brand transition-colors" data-cursor="link">Privacidad</a>
+                    <a href="#" class="hover:text-brand transition-colors" data-cursor="link">Términos</a>
+                </div>
+            </footer>
+        </div>
+    </section>
+
+    <!-- ============================================================
+         SCRIPTS DE LA APLICACIÓN
+         ============================================================ -->
+    <script src="js/physics.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
