@@ -7,10 +7,27 @@
     'use strict';
 
     /* -------------------------------------------------------------
-       Detección de dispositivo y configuración base
+       MOBILE FIX: en pantallas < 768px DESACTIVAMOS por completo
+       el motor de físicas (Matter.js + Canvas). En su lugar dejamos
+       un fondo estático con gradiente CSS — esto garantiza que el
+       scroll se mantenga 100% fluido en celulares de gama media/baja.
        ------------------------------------------------------------- */
-    const isMobile = window.matchMedia('(max-width: 768px)').matches;
-    const isTouch = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+    const isMobile = window.matchMedia('(max-width: 767px)').matches;
+
+    if (isMobile) {
+        // Ocultar el canvas y aplicar clase de fondo estático sofisticado
+        const canvas = document.getElementById('physics-canvas');
+        if (canvas) canvas.style.display = 'none';
+        const hero = document.getElementById('inicio');
+        if (hero) hero.classList.add('hero-static');
+        // Exportar API vacía para compatibilidad
+        window.CapitalVisionPhysics = { engine: null, bodies: [], start: () => {}, stop: () => {} };
+        return; // ← Salida temprana: no inicializamos nada de Matter.js
+    }
+
+    /* -------------------------------------------------------------
+       DESKTOP: motor completo con interactividad permanente
+       ------------------------------------------------------------- */
 
     // Alias de Matter.js para legibilidad
     const { Engine, World, Bodies, Body, Mouse, MouseConstraint, Events, Composite } = Matter;
@@ -44,35 +61,36 @@
 
     /* -------------------------------------------------------------
        Motor de físicas
+       CAMBIO CRÍTICO: enableSleeping=false → los cuerpos NUNCA quedan
+       inactivos, así reaccionan siempre al cursor incluso después del
+       impacto inicial. Garantiza interactividad permanente.
        ------------------------------------------------------------- */
     const engine = Engine.create({
-        // Gravedad sutil hacia abajo
         gravity: { x: 0, y: 0.6, scale: 0.001 },
-        enableSleeping: true // permite que los cuerpos "duerman" cuando estén quietos (ahorra CPU)
+        enableSleeping: false
     });
     const world = engine.world;
 
     /* -------------------------------------------------------------
        Paredes invisibles (mantienen los cuerpos dentro del canvas)
        ------------------------------------------------------------- */
-    const wallOpts = { isStatic: true, restitution: 0.6, render: { visible: false } };
+    const wallOpts = { isStatic: true, restitution: 0.7, render: { visible: false } };
     let walls = [];
 
     function buildWalls() {
-        // Remover paredes antiguas
         walls.forEach(w => World.remove(world, w));
         walls = [
-            Bodies.rectangle(width / 2, height + 30, width, 60, wallOpts),   // piso
-            Bodies.rectangle(width / 2, -30, width, 60, wallOpts),           // techo
-            Bodies.rectangle(-30, height / 2, 60, height, wallOpts),         // izquierda
-            Bodies.rectangle(width + 30, height / 2, 60, height, wallOpts)   // derecha
+            Bodies.rectangle(width / 2, height + 30, width, 60, wallOpts),
+            Bodies.rectangle(width / 2, -30, width, 60, wallOpts),
+            Bodies.rectangle(-30, height / 2, 60, height, wallOpts),
+            Bodies.rectangle(width + 30, height / 2, 60, height, wallOpts)
         ];
         World.add(world, walls);
     }
     buildWalls();
 
     /* -------------------------------------------------------------
-       Cuerpos interactivos: paleta de marca, formas variadas
+       Cuerpos interactivos
        ------------------------------------------------------------- */
     const palette = {
         orange:    '#ff6600',
@@ -82,21 +100,24 @@
         outline:   'rgba(255,255,255,0.15)'
     };
 
-    // Etiquetas tecnológicas que aparecerán dentro de los cuerpos
     const techLabels = ['Web', 'UI', 'UX', 'Code', 'API', 'CMS', 'SEO', 'DEV', '< / >'];
 
     const bodies = [];
 
     /**
      * Crea un cuerpo decorativo con metadatos para su render.
+     * sleepThreshold: -1 refuerza la NO inactividad por seguridad.
      */
     function createDecorBody(type, x, y) {
-        const restitution = 0.78; // rebote elástico
-        const friction = 0.02;
-        const frictionAir = 0.02;
+        const baseOpts = {
+            restitution: 0.85,    // rebote más vivo
+            friction: 0.02,
+            frictionAir: 0.015,   // menos rozamiento para que conserven energía
+            density: 0.0015,
+            sleepThreshold: -1    // nunca duermen
+        };
 
         let body;
-        const baseOpts = { restitution, friction, frictionAir, density: 0.0015 };
 
         if (type === 'circle') {
             const r = 22 + Math.random() * 28;
@@ -131,25 +152,13 @@
         } else if (type === 'tri') {
             const s = 50 + Math.random() * 30;
             body = Bodies.polygon(x, y, 3, s, baseOpts);
-            body.renderMeta = {
-                kind: 'tri',
-                size: s,
-                color: palette.orange,
-                style: 'outline'
-            };
+            body.renderMeta = { kind: 'tri', size: s, color: palette.orange, style: 'outline' };
         } else {
-            // hex
             const s = 35 + Math.random() * 30;
             body = Bodies.polygon(x, y, 6, s, baseOpts);
-            body.renderMeta = {
-                kind: 'hex',
-                size: s,
-                color: palette.orange,
-                style: 'fill'
-            };
+            body.renderMeta = { kind: 'hex', size: s, color: palette.orange, style: 'fill' };
         }
 
-        // Empujón inicial aleatorio para que entren en escena con vida
         Body.setVelocity(body, {
             x: (Math.random() - 0.5) * 3,
             y: (Math.random() - 0.5) * 2
@@ -159,11 +168,8 @@
         return body;
     }
 
-    /**
-     * Poblar el lienzo con cuerpos. Reducido en móvil para rendimiento.
-     */
     function populate() {
-        const count = isMobile ? 10 : 18;
+        const count = 18;
         const types = ['circle', 'square', 'pill', 'tri', 'hex'];
 
         for (let i = 0; i < count; i++) {
@@ -184,7 +190,7 @@
     const mouseConstraint = MouseConstraint.create(engine, {
         mouse,
         constraint: {
-            stiffness: 0.18,
+            stiffness: 0.2,
             damping: 0.05,
             render: { visible: false }
         }
@@ -192,54 +198,84 @@
 
     World.add(world, mouseConstraint);
 
-    // Trick: permite que la página siga scrolleando aunque pasemos por el canvas
+    // Permitir scroll de página aunque el cursor esté sobre el canvas
     canvas.addEventListener('wheel', (e) => {
         window.scrollBy({ top: e.deltaY, behavior: 'auto' });
     }, { passive: true });
 
     /* -------------------------------------------------------------
-       Repulsión por proximidad del cursor (efecto "antigravity")
+       INTERACTIVIDAD PERMANENTE
+       Cada vez que el cursor se acerca, aplicamos:
+         (a) repulsión radial proporcional a la distancia
+         (b) "tirón aleatorio" sutil para que nunca queden inertes
+       Esto garantiza que después del impacto inicial los cuerpos
+       sigan respondiendo SIEMPRE a la presencia del cursor.
        ------------------------------------------------------------- */
-    const repelRadius = isMobile ? 90 : 130;
-    const repelForce = 0.0008;
+    const repelRadius = 150;
+    const repelForce = 0.0012;
 
     Events.on(engine, 'beforeUpdate', () => {
-        // Cuando el ratón se mueve cerca de un cuerpo (sin arrastrarlo), lo empuja
-        if (mouseConstraint.body) return; // si ya está arrastrando, no aplicar repulsión
+        if (mouseConstraint.body) return; // si está arrastrando uno, no aplicamos repulsión global
+
         const mx = mouse.position.x;
         const my = mouse.position.y;
 
-        bodies.forEach(b => {
+        for (let i = 0; i < bodies.length; i++) {
+            const b = bodies[i];
             const dx = b.position.x - mx;
             const dy = b.position.y - my;
             const dist = Math.hypot(dx, dy);
+
             if (dist > 0 && dist < repelRadius) {
                 const factor = (1 - dist / repelRadius) * repelForce;
+                // Vector de repulsión + componente tangencial leve (giro)
                 Body.applyForce(b, b.position, {
                     x: (dx / dist) * factor * b.mass,
                     y: (dy / dist) * factor * b.mass
                 });
+                // Aplicar un torque mínimo para que rote al alejarse
+                Body.setAngularVelocity(b, b.angularVelocity + (Math.random() - 0.5) * 0.02);
             }
-        });
+        }
     });
 
     /* -------------------------------------------------------------
-       RENDER personalizado en Canvas (más bonito que el render default)
+       Click sobre cuerpo → "patadita" extra
+       Si el usuario hace clic en un bloque, aplica una fuerza
+       de impulso radial desde el punto del click.
        ------------------------------------------------------------- */
-    /* ---------------------------------------------------------
-       OPTIMIZACIÓN: Pre-cacheo de gradientes y "halos" pre-renderizados
-       en sprites offscreen. Evita generar gradientes y shadowBlur por
-       frame (operaciones extremadamente costosas en Canvas).
-       --------------------------------------------------------- */
+    canvas.addEventListener('mousedown', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const px = e.clientX - rect.left;
+        const py = e.clientY - rect.top;
+
+        for (let i = 0; i < bodies.length; i++) {
+            const b = bodies[i];
+            const dx = b.position.x - px;
+            const dy = b.position.y - py;
+            const dist = Math.hypot(dx, dy);
+            if (dist < 90) {
+                const f = 0.04 * b.mass;
+                Body.applyForce(b, b.position, {
+                    x: (dx / (dist || 1)) * f,
+                    y: (dy / (dist || 1)) * f - 0.01 * b.mass // empuje extra hacia arriba
+                });
+            }
+        }
+    }, { passive: true });
+
+    /* -------------------------------------------------------------
+       RENDER: sprites cacheados en canvas offscreen
+       Optimización clave: la forma + halo se renderiza UNA VEZ a un
+       canvas offscreen y luego solo hacemos drawImage por frame
+       (operación GPU-acelerada, mucho más rápida que recalcular
+       gradientes y shadowBlur en cada frame).
+       ------------------------------------------------------------- */
     const spriteCache = new Map();
 
-    /**
-     * Crea (una sola vez) un sprite offscreen con la forma + halo.
-     * Luego solo hacemos drawImage por frame, que es muy rápido.
-     */
     function buildSprite(key, size, drawFn) {
         if (spriteCache.has(key)) return spriteCache.get(key);
-        const pad = 24; // margen para el halo
+        const pad = 24;
         const totalSize = Math.ceil(size + pad * 2);
         const off = document.createElement('canvas');
         off.width = totalSize * dpr;
@@ -381,10 +417,6 @@
         return m.sprite;
     }
 
-    /**
-     * Renderiza el cuerpo dibujando su sprite cacheado.
-     * Esto es ~10x más rápido que generar gradientes/shadowBlur en cada frame.
-     */
     function drawBody(body) {
         const m = body.renderMeta;
         if (!m) return;
@@ -394,15 +426,11 @@
         ctx.save();
         ctx.translate(x, y);
         ctx.rotate(body.angle);
-        // Dibujar sprite centrado (compensa el padding del sprite)
         const s = sprite.size;
         ctx.drawImage(sprite.canvas, -s / 2, -s / 2, s, s);
         ctx.restore();
     }
 
-    /**
-     * Utilidad: rectángulo con esquinas redondeadas.
-     */
     function roundRect(ctx, x, y, w, h, r) {
         ctx.beginPath();
         ctx.moveTo(x + r, y);
@@ -417,9 +445,6 @@
         ctx.closePath();
     }
 
-    /**
-     * Utilidad: traza un polígono regular sin renderizar.
-     */
     function drawPolygon(ctx, sides, radius) {
         ctx.beginPath();
         for (let i = 0; i < sides; i++) {
@@ -432,25 +457,19 @@
     }
 
     /* -------------------------------------------------------------
-       LOOP de animación (controlado y eficiente)
+       LOOP de animación con paso fijo (estable a 60fps)
        ------------------------------------------------------------- */
     let rafId = null;
     let isRunning = false;
     let lastTime = performance.now();
-
-    /* OPTIMIZACIÓN: paso fijo de simulación a 60fps para estabilidad
-       y evitar el warning de Matter.js cuando delta > 16.67ms.
-       Esto también evita "explosiones" físicas en lag spikes. */
     const FIXED_DT = 1000 / 60;
 
     function loop(now) {
         if (!isRunning) return;
 
-        // delta acumulado pero capado: previene saltos enormes después de pausas
         let elapsed = Math.min(now - lastTime, 50);
         lastTime = now;
 
-        // Si elapsed > FIXED_DT * 2, dividir en sub-pasos
         const steps = Math.min(2, Math.ceil(elapsed / FIXED_DT));
         const stepDt = elapsed / steps;
         for (let i = 0; i < steps; i++) {
@@ -477,50 +496,38 @@
         if (rafId) cancelAnimationFrame(rafId);
     }
 
-    // Iniciar
     start();
 
     /* -------------------------------------------------------------
-       OPTIMIZACIONES:
-       - Pausar la simulación cuando el Hero no está visible
-       - Reescalar al cambiar tamaño de ventana
+       OPTIMIZACIONES de ciclo de vida
        ------------------------------------------------------------- */
     const hero = document.getElementById('inicio');
     if ('IntersectionObserver' in window && hero) {
         const observer = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    start();
-                } else {
-                    stop();
-                }
+                entry.isIntersecting ? start() : stop();
             });
         }, { threshold: 0.05 });
         observer.observe(hero);
     }
 
-    // Reescalado responsive
     let resizeTimer = null;
     window.addEventListener('resize', () => {
         clearTimeout(resizeTimer);
         resizeTimer = setTimeout(() => {
+            // Si el resize cruza el breakpoint a móvil, recargamos para aplicar el bypass
+            if (window.matchMedia('(max-width: 767px)').matches) {
+                window.location.reload();
+                return;
+            }
             resizeCanvas();
             buildWalls();
         }, 150);
     });
 
-    // Pausar al cambiar de pestaña
     document.addEventListener('visibilitychange', () => {
         document.hidden ? stop() : start();
     });
 
-    /* -------------------------------------------------------------
-       EXPORT (uso interno, debug opcional)
-       ------------------------------------------------------------- */
-    window.CapitalVisionPhysics = {
-        engine,
-        bodies,
-        start,
-        stop
-    };
+    window.CapitalVisionPhysics = { engine, bodies, start, stop };
 })();

@@ -1,10 +1,18 @@
 /* =============================================================
    CAPITAL VISION — Lógica de interactividad general
-   Cursor personalizado, navegación, scroll reveals, modal y forms
+   Cursor (rAF + translate3d GPU), navegación, scroll reveals,
+   modal con flujo de conversión vía WhatsApp.
    ============================================================= */
 
 (() => {
     'use strict';
+
+    /* -------------------------------------------------------------
+       Constantes globales del negocio
+       ------------------------------------------------------------- */
+    // Número de WhatsApp Capital Vision (Guatemala — código de país 502)
+    // Nota: el teléfono de llamada directa (tel:) es distinto — ver footer
+    const WHATSAPP_NUMBER = '50258549829';
 
     /* -------------------------------------------------------------
        Utilidades
@@ -13,39 +21,54 @@
     const $ = (sel, root = document) => root.querySelector(sel);
     const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
+    /**
+     * Construye y abre el enlace de WhatsApp con mensaje codificado.
+     * Centralizado para evitar duplicar lógica entre el modal y el form.
+     */
+    function openWhatsApp(message) {
+        const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+        // _blank en escritorio → nueva pestaña; en móvil → app de WhatsApp
+        window.open(url, '_blank', 'noopener,noreferrer');
+    }
+
     /* -------------------------------------------------------------
-       1. CURSOR PERSONALIZADO (anillo + punto con seguimiento suave)
+       1. CURSOR PERSONALIZADO
+          · Sigue el ratón con interpolación (lerp) suave.
+          · requestAnimationFrame + translate3d para forzar capa GPU
+            (60 FPS sin ghosting incluso bajo carga).
+          · Se detiene automáticamente cuando ya alcanzó el destino,
+            ahorrando ciclos cuando el ratón está quieto.
+          · Oculto en táctiles (hidden lg:block desde HTML).
        ------------------------------------------------------------- */
     const ring = $('#cursor-ring');
     const dot = $('#cursor-dot');
 
     if (ring && dot && !isTouch) {
-        // Posiciones actuales y objetivo
         let targetX = window.innerWidth / 2;
         let targetY = window.innerHeight / 2;
         let ringX = targetX, ringY = targetY;
         let dotX = targetX, dotY = targetY;
         let cursorRaf = null;
 
+        // Factores de interpolación: más bajo = más arrastre/elasticidad
         const ringLerp = 0.2;
         const dotLerp = 0.6;
-        const EPS = 0.1; // umbral para detener el rAF cuando ya está estable
+        const EPS = 0.1; // umbral para detener el bucle
 
-        // OPTIMIZACIÓN: usar translate3d para forzar capa de GPU y detener
-        // el bucle cuando el cursor ya alcanzó su destino (ahorra ~60 rAFs/seg).
         function animateCursor() {
             ringX += (targetX - ringX) * ringLerp;
             ringY += (targetY - ringY) * ringLerp;
             dotX += (targetX - dotX) * dotLerp;
             dotY += (targetY - dotY) * dotLerp;
 
+            // translate3d activa aceleración por GPU (composite layer)
             ring.style.transform = `translate3d(${ringX}px, ${ringY}px, 0) translate(-50%, -50%)`;
             dot.style.transform = `translate3d(${dotX}px, ${dotY}px, 0) translate(-50%, -50%)`;
 
             const dRing = Math.abs(targetX - ringX) + Math.abs(targetY - ringY);
             const dDot = Math.abs(targetX - dotX) + Math.abs(targetY - dotY);
             if (dRing < EPS && dDot < EPS) {
-                cursorRaf = null;
+                cursorRaf = null; // dormir hasta el próximo mousemove
                 return;
             }
             cursorRaf = requestAnimationFrame(animateCursor);
@@ -59,7 +82,7 @@
             }
         }, { passive: true });
 
-        // Estados hover por atributo data-cursor
+        // Estados hover por atributo data-cursor (link/button/card/text)
         const hoverTargets = $$('[data-cursor]');
         hoverTargets.forEach(el => {
             const kind = el.dataset.cursor;
@@ -73,11 +96,9 @@
             });
         });
 
-        // Estado activo (mouse down)
         window.addEventListener('mousedown', () => ring.classList.add('is-active'));
         window.addEventListener('mouseup', () => ring.classList.remove('is-active'));
 
-        // Ocultar al salir de la ventana
         window.addEventListener('mouseleave', () => {
             ring.style.opacity = '0';
             dot.style.opacity = '0';
@@ -86,14 +107,10 @@
             ring.style.opacity = '1';
             dot.style.opacity = '1';
         });
-    } else {
-        // En táctil ocultamos los elementos del cursor
-        if (ring) ring.style.display = 'none';
-        if (dot) dot.style.display = 'none';
     }
 
     /* -------------------------------------------------------------
-       2. NAVBAR: cambio al hacer scroll + menú móvil
+       2. NAVBAR — cambio de estilo al hacer scroll (rAF-throttled)
        ------------------------------------------------------------- */
     const navbar = $('#navbar');
     let navTicking = false;
@@ -108,7 +125,6 @@
         navTicking = false;
     }
     checkNav();
-    // OPTIMIZACIÓN: throttle con rAF y evita togglear si el estado no cambió
     window.addEventListener('scroll', () => {
         if (!navTicking) {
             requestAnimationFrame(checkNav);
@@ -124,7 +140,6 @@
         mobileMenu?.classList.toggle('hidden');
     });
 
-    // Cerrar menú móvil al hacer click en un enlace
     $$('.mobile-link').forEach(a => {
         a.addEventListener('click', () => mobileMenu?.classList.add('hidden'));
     });
@@ -137,7 +152,6 @@
         const io = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
                 if (entry.isIntersecting) {
-                    // pequeño retraso escalonado para efecto cascada
                     const delay = entry.target.dataset.delay || 0;
                     setTimeout(() => entry.target.classList.add('is-visible'), delay);
                     io.unobserve(entry.target);
@@ -147,14 +161,12 @@
 
         revealEls.forEach(el => io.observe(el));
     } else {
-        // Fallback
         revealEls.forEach(el => el.classList.add('is-visible'));
     }
 
     /* -------------------------------------------------------------
-       4. EFECTO "GLOW SIGUE AL MOUSE" en cards de servicios
+       4. Glow que sigue al cursor en cards de servicios (rAF-throttled)
        ------------------------------------------------------------- */
-    // OPTIMIZACIÓN: rAF-throttle del seguimiento del mouse en cards
     $$('.service-card').forEach(card => {
         let cardTicking = false;
         let mx = 0, my = 0;
@@ -184,95 +196,50 @@
             const target = document.querySelector(targetId);
             if (!target) return;
             e.preventDefault();
-            const offset = 80; // espacio para navbar
+            const offset = 80;
             const top = target.getBoundingClientRect().top + window.scrollY - offset;
             window.scrollTo({ top, behavior: 'smooth' });
         });
     });
 
     /* -------------------------------------------------------------
-       6. MODAL DE COTIZACIÓN (planes)
+       6. BOTONES DE PLAN → Redirect DIRECTO a WhatsApp
+          · Sin modal, sin pedir número del cliente.
+          · Mensaje predeterminado según el plan elegido.
        ------------------------------------------------------------- */
-    const modal = $('#quote-modal');
-    const modalPlanName = $('#modal-plan-name');
-    const modalClose = $('#modal-close');
     const planButtons = $$('.plan-btn');
-    const quoteForm = $('#quote-form');
-    const quoteSuccess = $('#quote-success');
-
-    function openModal(planName) {
-        if (!modal) return;
-        if (modalPlanName) modalPlanName.textContent = planName;
-        modal.classList.add('is-active');
-        modal.setAttribute('aria-hidden', 'false');
-        document.body.style.overflow = 'hidden';
-        // resetear estado
-        quoteForm?.classList.remove('hidden');
-        quoteSuccess?.classList.add('hidden');
-        quoteForm?.reset();
-    }
-
-    function closeModal() {
-        if (!modal) return;
-        modal.classList.remove('is-active');
-        modal.setAttribute('aria-hidden', 'true');
-        document.body.style.overflow = '';
-    }
 
     planButtons.forEach(btn => {
-        btn.addEventListener('click', () => {
-            openModal(btn.dataset.plan || 'Básico');
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const plan = btn.dataset.plan || 'Básico';
+            const message = plan === 'Empresarial'
+                ? 'Hola, estoy interesado en cotizar con el plan empresarial'
+                : 'Hola, estoy interesado en hacer una cotizacion con el plan basico';
+            openWhatsApp(message);
         });
     });
 
-    modalClose?.addEventListener('click', closeModal);
-    modal?.addEventListener('click', (e) => {
-        if (e.target.classList.contains('modal-backdrop')) closeModal();
-    });
-
-    // Cerrar con tecla ESC
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && modal?.classList.contains('is-active')) {
-            closeModal();
-        }
-    });
-
     /* -------------------------------------------------------------
-       7. SUBMIT del formulario del modal y de contacto
+       7. FORMULARIO DE CONTACTO (footer)
+          También redirige a WhatsApp con un mensaje genérico.
+          No requiere input del usuario.
        ------------------------------------------------------------- */
-    quoteForm?.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const phone = quoteForm.phone.value.trim();
-        if (!phone) return;
-
-        // Aquí se integraría una API real. Por ahora simulamos éxito visual.
-        console.log('Cotización solicitada:', { plan: modalPlanName?.textContent, phone });
-
-        quoteForm.classList.add('hidden');
-        quoteSuccess?.classList.remove('hidden');
-
-        // Cierre automático tras 2.5s
-        setTimeout(closeModal, 2800);
-    });
-
     const contactForm = $('#contact-form');
     const contactSuccess = $('#contact-success');
 
     contactForm?.addEventListener('submit', (e) => {
         e.preventDefault();
-        const phone = contactForm.phone.value.trim();
-        if (!phone) return;
-        console.log('Solicitud de contacto:', { phone });
         contactSuccess?.classList.remove('hidden');
-        contactForm.reset();
-        // Ocultar el éxito tras unos segundos
-        setTimeout(() => contactSuccess?.classList.add('hidden'), 4000);
+        setTimeout(() => {
+            openWhatsApp('Hola Capital Vision, me gustaría más información');
+            contactForm?.reset();
+            setTimeout(() => contactSuccess?.classList.add('hidden'), 2000);
+        }, 300);
     });
 
     /* -------------------------------------------------------------
-       8. PARALLAX en el hero — throttled con rAF para máximo rendimiento.
-          Sin esto, el handler corre en cada evento (muchos por segundo)
-          forzando reflow. Con rAF se sincroniza al refresh rate.
+       9. PARALLAX del hero (rAF-throttled, solo escritorio)
        ------------------------------------------------------------- */
     const heroContent = $('#inicio .relative.z-10');
     if (heroContent && !isTouch) {
@@ -299,7 +266,7 @@
     }
 
     /* -------------------------------------------------------------
-       9. LOG inicial
+       10. LOG inicial
        ------------------------------------------------------------- */
     console.log('%cCapital Vision', 'color:#ff6600;font-weight:bold;font-size:18px;letter-spacing:.2em;');
     console.log('%cDesarrollo web premium · capitalvision.com', 'color:#888;');

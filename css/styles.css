@@ -73,10 +73,15 @@ body {
     position: fixed;
     top: 0;
     left: 0;
+    /* CRÍTICO: pointer-events:none → el cursor NUNCA bloquea
+       clics en los elementos reales debajo de él. */
     pointer-events: none;
     z-index: 9999;
-    transform: translate(-50%, -50%);
+    transform: translate3d(0, 0, 0) translate(-50%, -50%);
     will-change: transform, width, height, opacity;
+    /* Optimización GPU: forzar capa de composición */
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
 }
 
 .cursor-ring {
@@ -168,6 +173,33 @@ body {
 .hero-glow {
     background: radial-gradient(ellipse at 70% 50%, rgba(255, 102, 0, 0.15), transparent 60%),
                 radial-gradient(ellipse at 20% 80%, rgba(255, 102, 0, 0.08), transparent 50%);
+}
+
+/* Hero estático (modo móvil sin Matter.js) — fondo sofisticado puro CSS.
+   Se aplica cuando js/physics.js detecta pantalla <768px y se desactiva.
+   Transiciones CSS ligeras = scroll 100% fluido. */
+.hero-static {
+    background:
+        radial-gradient(circle at 80% 20%, rgba(255, 102, 0, 0.18), transparent 55%),
+        radial-gradient(circle at 15% 75%, rgba(255, 102, 0, 0.10), transparent 50%),
+        linear-gradient(180deg, #000 0%, #0b0b0b 100%);
+}
+.hero-static::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+        linear-gradient(rgba(255, 102, 0, 0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 102, 0, 0.04) 1px, transparent 1px);
+    background-size: 60px 60px;
+    mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
+    -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
+    animation: heroGridPulse 8s ease-in-out infinite;
+    pointer-events: none;
+}
+@keyframes heroGridPulse {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
 }
 
 /* Cuadrícula sutil futurista */
@@ -967,15 +999,20 @@ body {
     100% { transform: scale(1); }
 }
 
-/* Contact form */
+/* Contact form (sin inputs, solo CTA directo) */
 .contact-form {
     display: flex;
     flex-direction: column;
-    gap: 20px;
-    padding: 36px;
+    gap: 24px;
+    padding: 40px 36px;
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01));
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 20px;
+}
+
+.contact-pitch h3 {
+    color: #fff;
+    font-weight: 700;
 }
 
 /* -------------------------------------------------------------
