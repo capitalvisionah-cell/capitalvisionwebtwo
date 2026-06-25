@@ -1,0 +1,13 @@
+# robots.txt — Capital Vision
+# Permitimos a TODOS los crawlers (Google, Bing, Yandex, etc.)
+# indexar todo el sitio.
+
+User-agent: *
+Allow: /
+
+# Bloquear archivos internos de plataforma (Vercel)
+Disallow: /.vercel/
+Disallow: /api/
+
+# Sitemap principal — Google lo lee automáticamente
+Sitemap: https://capitalvisionweb.com/sitemap.xml
